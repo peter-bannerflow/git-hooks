@@ -1,0 +1,57 @@
+#!/bin/sh
+#
+# Runs at the end of git flow hotfix start
+#
+# Positional arguments:
+# $1    The version (including the version prefix)
+# $2    The origin remote
+# $3    The full branch name (including the feature prefix)
+# $4    The base from which this feature is started
+#
+# The following variables are available as they are exported by git-flow:
+#
+# MASTER_BRANCH - The branch defined as Master
+# DEVELOP_BRANCH - The branch defined as Develop
+#
+VERSION=$1
+ORIGIN=$2
+BRANCH=$3
+BASE=$4
+
+# Bumps the hotfix part of the version property of appveyor.yml file in root directory.
+# Assumes version property to be of format: major.minor.hotfix.{build}
+
+if [ ! -f ./appveyor.yml ]; then
+  echo "File appveyor.yml not found in root, continuing without bumping the version"
+  exit 0
+fi
+
+currentVersion=$(awk '/^version/{gsub(" ", "", $0); print $0}' appveyor.yml)
+
+if [ "$currentVersion" == "version:" ] || [ -z "$currentVersion" ]; then
+  echo "Version property not found or not set, continuing without bumping the version"
+  exit 0
+fi
+
+if ! [[ "$currentVersion" =~ [0-9]*.[0-9]*.[0-9]*.{build} ]]; then
+  echo "Version property not matching assumed format of major.minor.hotfix.{build}, continuing without bumping the version ";
+  exit 0
+fi
+
+bumpedVersion=$(awk '/^version/{
+  gsub(" ", "", $0);
+  str = substr($0, index($0, ":") + 1, length($0));
+  split(str, arr, ".");
+  arr[3] = arr[3] + 1;
+  res = "version:";
+  for(i=1; i <= length(arr); i++){
+    i == 1 ? res = arr[i] : res = res "." arr[i]
+  };
+  print res;
+}' appveyor.yml)
+
+sed -i "/version:/c\version: $bumpedVersion" appveyor.yml
+
+echo "Bumped version in appveyor.yml to " $bumpedVersion
+
+exit 0
