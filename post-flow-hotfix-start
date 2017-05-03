@@ -50,7 +50,7 @@ bumpedVersion=$(awk '/^version/{
   print res;
 }' appveyor.yml)
 
-sed -i "/version:/c\version: $bumpedVersion" appveyor.yml
+sed -i "/^version:/c\version: $bumpedVersion" appveyor.yml
 
 echo "Bumped version in appveyor.yml to " $bumpedVersion
 
